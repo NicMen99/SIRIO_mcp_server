@@ -1,5 +1,6 @@
 package org.swam.sirio_mcp_server;
 
+import org.oristool.models.stpn.trees.StochasticTransitionFeature;
 import org.oristool.petrinet.*;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
@@ -30,6 +31,23 @@ public class SirioService {
             petriNet.addTransition(transitionName);
         }
         return petriNet;
+    }
+
+    @Tool(name = "add_UNI", description = "Add a uniformely distributed transition")
+    public void addUNI(
+            @ToolParam(description = "name of transition") String transition_name,
+            @ToolParam(description = "earliest firing time") String etf,
+            @ToolParam(description = "latest firing time") String ltf
+    ) {
+        Transition t = petriNet.getTransitions().stream()
+                .filter(trans -> trans.getName().equals(transition_name))
+                .findFirst()
+                .orElse(null);
+        if (t == null) {
+            t = petriNet.addTransition(transition_name);
+        }
+
+        t.addFeature(StochasticTransitionFeature.newUniformInstance(etf, ltf));
     }
 
     @Tool(name = "show_net", description = "Show current petri net")
