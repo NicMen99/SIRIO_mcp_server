@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class SirioService {
     private PetriNet petriNet = null;
+    private Marking marking = null;
 
     @Tool(name="create", description = "Create an empty petri net")
     public PetriNet createPetriNet() {
@@ -31,7 +32,7 @@ public class SirioService {
         return petriNet;
     }
 
-    @Tool(name = "show", description = "Show current petri net")
+    @Tool(name = "show_net", description = "Show current petri net")
     public String showPetriNet() {
         return petriNet.toString();
     }
@@ -76,5 +77,29 @@ public class SirioService {
             .orElseThrow(() -> new IllegalArgumentException("Place not found" + place_name));
         petriNet.addPostcondition(t, p);
         return petriNet;
+    }
+
+    @Tool(name = "create_marking", description = "Creates an empty marking for the current Petri Net")
+    public Marking createMarking() {
+        marking = new Marking();
+        return marking;
+    }
+
+    @Tool(name = "add_tokens", description = "Add a specific number of tokens to a place")
+    public Marking addToken(
+            @ToolParam(description = "Name of the place") String name,
+            @ToolParam(description = "Number of tokens to be added") int num
+    ) {
+        Place p = petriNet.getPlaces().stream()
+                .filter(place -> place.getName().equals(name))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Place not found" + name));
+        marking.addTokens(p, num);
+        return marking;
+    }
+
+    @Tool(name = "show_marking", description = "Show current petri net")
+    public String showMarking() {
+        return marking.toString();
     }
 }
