@@ -6,6 +6,10 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 @Service
 public class SirioService {
     private PetriNet petriNet = null;
@@ -25,10 +29,44 @@ public class SirioService {
         return petriNet;
     }
 
+    @Tool(name = "remove_places", description = "Remove existent places from the net")
+    public PetriNet removePlaces(String ... node_names) {
+        List<Place> places_to_be_removed = new ArrayList<Place>();
+        for (String nodeName : node_names) {
+            Place p = petriNet.getPlace(nodeName);
+            places_to_be_removed.add(p);
+        }
+        for (Place place : places_to_be_removed) {
+            petriNet.removePlace(place);
+        }
+        return petriNet;
+    }
+
     @Tool(name = "add_transitions", description = "Add new transitions to the net")
     public PetriNet addTransitions(String ... transition_names) {
         for (String transitionName : transition_names) {
             petriNet.addTransition(transitionName);
+        }
+        return petriNet;
+    }
+
+    @Tool(name = "remove_transitions", description = "Remove existent transitions from the net")
+    public PetriNet removeTransitions(String ... transition_names) {
+        List<Transition> transitions_to_be_removed = new ArrayList<Transition>();
+        for (String transitionName : transition_names) {
+            Transition t = petriNet.getTransition(transitionName);
+            transitions_to_be_removed.add(t);
+        }
+        for (Transition transition : transitions_to_be_removed) {
+            Collection<Precondition> affected_preconds = petriNet.getPreconditions(transition);
+            for (Precondition precond : affected_preconds) {
+                petriNet.removePrecondition(precond);
+            }
+            Collection<Postcondition> affected_postconds = petriNet.getPostconditions(transition);
+            for (Postcondition postcond : affected_postconds) {
+                petriNet.removePostcondition(postcond);
+            }
+            petriNet.removeTransition(transition);
         }
         return petriNet;
     }
@@ -93,6 +131,29 @@ public class SirioService {
         return petriNet;
     }
 
+    @Tool(name = "remove_preconditions", description = "Remove a precondition to a transition")
+    public PetriNet removePrecondition(
+            @ToolParam(description = "Name of the place") String place_name,
+            @ToolParam(description = "Name of the transition") String transition_name
+    ){
+        // Trova il place per nome
+        Place p = petriNet.getPlaces().stream()
+                .filter(place -> place.getName().equals(place_name))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Place not found" + place_name));
+
+
+        // Trova la transition per nome
+        Transition t = petriNet.getTransitions().stream()
+                .filter(trans -> trans.getName().equals(transition_name))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Transition not found" + transition_name));
+
+        Precondition pc = petriNet.getPrecondition(p, t);
+        petriNet.removePrecondition(pc);
+        return petriNet;
+    }
+
     @Tool(name = "add_postcondition", description = "Add a postcondition to a transition")
     public PetriNet addPostcondition(
         @ToolParam(description="Name of the transition") String transition_name,
@@ -110,6 +171,28 @@ public class SirioService {
             .findFirst()
             .orElseThrow(() -> new IllegalArgumentException("Place not found" + place_name));
         petriNet.addPostcondition(t, p);
+        return petriNet;
+    }
+
+    @Tool(name = "remove_postconditions", description = "Remove a postcondition to a transition")
+    public PetriNet removePostcondition(
+            @ToolParam(description = "Name of the place") String place_name,
+            @ToolParam(description = "Name of the transition") String transition_name
+    ){
+        // Trova la transition per nome
+        Transition t = petriNet.getTransitions().stream()
+                .filter(trans -> trans.getName().equals(transition_name))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Transition not found" + transition_name));
+
+        // Trova il place per nome
+        Place p = petriNet.getPlaces().stream()
+                .filter(place -> place.getName().equals(place_name))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Place not found" + place_name));
+
+        Postcondition pc = petriNet.getPostcondition(t, p);
+        petriNet.removePostcondition(pc);
         return petriNet;
     }
 
