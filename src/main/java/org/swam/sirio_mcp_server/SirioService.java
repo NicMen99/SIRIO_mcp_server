@@ -50,6 +50,22 @@ public class SirioService {
         t.addFeature(StochasticTransitionFeature.newUniformInstance(etf, ltf));
     }
 
+    @Tool(name = "add_DET", description = "Add a transition with a deterministic timer")
+    public void addDET(
+            @ToolParam(description = "name of transition") String transition_name,
+            @ToolParam(description = "timer value") String value
+    ) {
+        Transition t = petriNet.getTransitions().stream()
+                .filter(trans -> trans.getName().equals(transition_name))
+                .findFirst()
+                .orElse(null);
+        if (t == null) {
+            t = petriNet.addTransition(transition_name);
+        }
+
+        t.addFeature(StochasticTransitionFeature.newDeterministicInstance(value));
+    }
+
     @Tool(name = "show_net", description = "Show current petri net")
     public String showPetriNet() {
         return petriNet.toString();
