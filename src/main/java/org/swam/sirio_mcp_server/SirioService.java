@@ -67,6 +67,10 @@ public class SirioService {
                 petriNet.removePostcondition(postcond);
             }
             petriNet.removeTransition(transition);
+            Collection<InhibitorArc> affected_inhibitor_arcs = petriNet.getInhibitorArcs(transition);
+            for (InhibitorArc inhibitor_arc : affected_inhibitor_arcs) {
+                petriNet.removeInhibitorArc(inhibitor_arc);
+            }
         }
         return petriNet;
     }
@@ -193,6 +197,26 @@ public class SirioService {
 
         Postcondition pc = petriNet.getPostcondition(t, p);
         petriNet.removePostcondition(pc);
+        return petriNet;
+    }
+
+    @Tool(name = "remove_inhibitor_arc", description = "Remove an inhibitor arc between a place and a transition")
+    public PetriNet removeInhibitorArc(
+        @ToolParam(description = "Name of the place") String place_name,
+        @ToolParam(description = "Name of the transition") String transition_name
+    ) {
+        Place p = petriNet.getPlaces().stream()
+            .filter(place -> place.getName().equals(place_name))
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("Place not found" + place_name));
+
+        Transition t = petriNet.getTransitions().stream()
+            .filter(trans -> trans.getName().equals(transition_name))
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("Transition not found" + transition_name));
+        
+        InhibitorArc ia = petriNet.getInhibitorArc(p, t);
+        petriNet.removeInhibitorArc(ia);
         return petriNet;
     }
 
