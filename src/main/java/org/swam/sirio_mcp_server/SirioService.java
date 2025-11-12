@@ -33,7 +33,7 @@ public class SirioService {
         return petriNet;
     }
 
-    @Tool(name = "add_UNI", description = "Add a uniformely distributed transition")
+    @Tool(name = "add_UNI", description = "Add a new uniformely distributed transition")
     public void addUNI(
             @ToolParam(description = "name of transition") String transition_name,
             @ToolParam(description = "earliest firing time") String etf,
@@ -50,7 +50,7 @@ public class SirioService {
         t.addFeature(StochasticTransitionFeature.newUniformInstance(etf, ltf));
     }
 
-    @Tool(name = "add_DET", description = "Add a transition with a deterministic timer")
+    @Tool(name = "add_DET", description = "Add a new transition with a deterministic timer")
     public void addDET(
             @ToolParam(description = "name of transition") String transition_name,
             @ToolParam(description = "timer value") String value
@@ -66,9 +66,9 @@ public class SirioService {
         t.addFeature(StochasticTransitionFeature.newDeterministicInstance(value));
     }
 
-    @Tool(name = "show_net", description = "Show current petri net")
+    @Tool(name = "show_net", description = "Show the current status of the Petri Net")
     public String showPetriNet() {
-        return petriNet.toString();
+        return petriNet.toString() + "\n" + marking.toString();
     }
 
     @Tool(name = "add_precondition", description = "Add a precondition to a transition")
@@ -132,8 +132,22 @@ public class SirioService {
         return marking;
     }
 
-    @Tool(name = "show_marking", description = "Show current petri net")
-    public String showMarking() {
-        return marking.toString();
+    @Tool(name = "add_inhibitor_arc", description = "Add an inhibitor arc between a place and a transition")
+    public PetriNet addInhibitorArc(
+            @ToolParam(description = "Name of the source place") String source_name,
+            @ToolParam(description = "Name of the target transition") String transition_name
+    ) {
+        Place source = petriNet.getPlaces().stream()
+                .filter(place -> place.getName().equals(source_name))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Place not found" + source_name));
+
+        Transition target = petriNet.getTransitions().stream()
+                .filter(trans -> trans.getName().equals(transition_name))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Transition not found" + transition_name));
+
+        petriNet.addInhibitorArc(source, target);
+        return petriNet;
     }
 }
