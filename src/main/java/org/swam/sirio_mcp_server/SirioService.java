@@ -1,5 +1,6 @@
 package org.swam.sirio_mcp_server;
 
+import org.oristool.models.gspn.GSPNSteadyState;
 import org.oristool.models.stpn.trees.StochasticTransitionFeature;
 import org.oristool.petrinet.*;
 import org.springframework.ai.tool.annotation.Tool;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class SirioService {
@@ -66,11 +68,11 @@ public class SirioService {
             for (Postcondition postcond : affected_postconds) {
                 petriNet.removePostcondition(postcond);
             }
-            petriNet.removeTransition(transition);
             Collection<InhibitorArc> affected_inhibitor_arcs = petriNet.getInhibitorArcs(transition);
             for (InhibitorArc inhibitor_arc : affected_inhibitor_arcs) {
                 petriNet.removeInhibitorArc(inhibitor_arc);
             }
+            petriNet.removeTransition(transition);
         }
         return petriNet;
     }
@@ -256,5 +258,23 @@ public class SirioService {
 
         petriNet.addInhibitorArc(source, target);
         return petriNet;
+    }
+
+    @Tool(name = "add_enabling_function", description = "Add an enabling function to a transition")
+    public void addEnablingFunction(
+            @ToolParam(description = "Condition of the enabling function, boolean expression as String (ex. 'place_name == 1')") String condition,
+            @ToolParam(description = "Transition to apply the enabling function to")  String transition_name
+    ) {
+        Transition target = petriNet.getTransitions().stream()
+                .filter(trans -> trans.getName().equals(transition_name))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Transition not found" + transition_name));
+
+        target.addFeature(new EnablingFunction(condition));
+    }
+
+    @Tool(name = "execute_steady_state_analysis", description = "Executes a steady state analysis on a generalized stochastic petri net")
+    public Map<Marking, Double> executeTransientAnalysis() {
+        return GSPNSteadyState.builder().build().compute(petriNet, marking);
     }
 }
