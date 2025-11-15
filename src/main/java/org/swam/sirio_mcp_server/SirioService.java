@@ -7,6 +7,7 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -108,6 +109,37 @@ public class SirioService {
         }
 
         t.addFeature(StochasticTransitionFeature.newDeterministicInstance(value));
+    }
+
+    @Tool(name = "add_IMM", description = "Add a new immediate transition")
+    public void addIMM(
+            @ToolParam(description = "name of transition") String transition_name
+    ) {
+        Transition t = petriNet.getTransitions().stream()
+                .filter(trans -> trans.getName().equals(transition_name))
+                .findFirst()
+                .orElse(null);
+        if (t == null) {
+            t = petriNet.addTransition(transition_name);
+        }
+
+        t.addFeature(StochasticTransitionFeature.newDeterministicInstance("0"));
+    }
+
+    @Tool(name = "add_EXP", description = "Add a new transition with a exponential timer and variable rate")
+    public void addEXP(
+            @ToolParam(description = "name of transition") String transition_name,
+            @ToolParam(description = "rate value") BigDecimal rate
+    ) {
+        Transition t = petriNet.getTransitions().stream()
+                .filter(trans -> trans.getName().equals(transition_name))
+                .findFirst()
+                .orElse(null);
+        if (t == null) {
+            t = petriNet.addTransition(transition_name);
+        }
+
+        t.addFeature(StochasticTransitionFeature.newExponentialInstance(rate));
     }
 
     @Tool(name = "show_net", description = "Show the current status of the Petri Net")
