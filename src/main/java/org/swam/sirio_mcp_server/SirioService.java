@@ -1,5 +1,7 @@
 package org.swam.sirio_mcp_server;
 
+import org.swam.pn_utils.*;
+
 import org.oristool.models.gspn.GSPNSteadyState;
 import org.oristool.models.stpn.trees.StochasticTransitionFeature;
 import org.oristool.petrinet.*;
@@ -84,13 +86,7 @@ public class SirioService {
             @ToolParam(description = "earliest firing time") String etf,
             @ToolParam(description = "latest firing time") String ltf
     ) {
-        Transition t = petriNet.getTransitions().stream()
-                .filter(trans -> trans.getName().equals(transition_name))
-                .findFirst()
-                .orElse(null);
-        if (t == null) {
-            t = petriNet.addTransition(transition_name);
-        }
+        Transition t = PetriNetUtils.findOrCreateTransitionByName(petriNet, transition_name);
 
         t.addFeature(StochasticTransitionFeature.newUniformInstance(etf, ltf));
     }
@@ -100,13 +96,7 @@ public class SirioService {
             @ToolParam(description = "name of transition") String transition_name,
             @ToolParam(description = "timer value") String value
     ) {
-        Transition t = petriNet.getTransitions().stream()
-                .filter(trans -> trans.getName().equals(transition_name))
-                .findFirst()
-                .orElse(null);
-        if (t == null) {
-            t = petriNet.addTransition(transition_name);
-        }
+        Transition t = PetriNetUtils.findOrCreateTransitionByName(petriNet, transition_name);
 
         t.addFeature(StochasticTransitionFeature.newDeterministicInstance(value));
     }
@@ -115,13 +105,7 @@ public class SirioService {
     public void addIMM(
             @ToolParam(description = "name of transition") String transition_name
     ) {
-        Transition t = petriNet.getTransitions().stream()
-                .filter(trans -> trans.getName().equals(transition_name))
-                .findFirst()
-                .orElse(null);
-        if (t == null) {
-            t = petriNet.addTransition(transition_name);
-        }
+        Transition t = PetriNetUtils.findOrCreateTransitionByName(petriNet, transition_name);
 
         t.addFeature(StochasticTransitionFeature.newDeterministicInstance("0"));
     }
@@ -131,13 +115,7 @@ public class SirioService {
             @ToolParam(description = "name of transition") String transition_name,
             @ToolParam(description = "rate value") BigDecimal rate
     ) {
-        Transition t = petriNet.getTransitions().stream()
-                .filter(trans -> trans.getName().equals(transition_name))
-                .findFirst()
-                .orElse(null);
-        if (t == null) {
-            t = petriNet.addTransition(transition_name);
-        }
+        Transition t = PetriNetUtils.findOrCreateTransitionByName(petriNet, transition_name);
 
         t.addFeature(StochasticTransitionFeature.newExponentialInstance(rate));
     }
@@ -152,18 +130,8 @@ public class SirioService {
         @ToolParam(description = "Name of the place") String place_name,
         @ToolParam(description = "Name of the transition") String transition_name
     ){
-        // Trova il place per nome 
-        Place p = petriNet.getPlaces().stream()
-            .filter(place -> place.getName().equals(place_name))
-            .findFirst()
-            .orElseThrow(() -> new IllegalArgumentException("Place not found" + place_name));
-        
-
-        // Trova la transition per nome
-        Transition t = petriNet.getTransitions().stream()
-            .filter(trans -> trans.getName().equals(transition_name))
-            .findFirst()
-            .orElseThrow(() -> new IllegalArgumentException("Transition not found" + transition_name));
+        Place p = PetriNetUtils.findPlaceByName(petriNet, place_name);
+        Transition t = PetriNetUtils.findTransitionByName(petriNet, transition_name);
 
         petriNet.addPrecondition(p, t);
         return petriNet;
@@ -174,18 +142,8 @@ public class SirioService {
             @ToolParam(description = "Name of the place") String place_name,
             @ToolParam(description = "Name of the transition") String transition_name
     ){
-        // Trova il place per nome
-        Place p = petriNet.getPlaces().stream()
-                .filter(place -> place.getName().equals(place_name))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Place not found" + place_name));
-
-
-        // Trova la transition per nome
-        Transition t = petriNet.getTransitions().stream()
-                .filter(trans -> trans.getName().equals(transition_name))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Transition not found" + transition_name));
+        Place p = PetriNetUtils.findPlaceByName(petriNet, place_name);
+        Transition t = PetriNetUtils.findTransitionByName(petriNet, transition_name);
 
         Precondition pc = petriNet.getPrecondition(p, t);
         petriNet.removePrecondition(pc);
@@ -197,17 +155,9 @@ public class SirioService {
         @ToolParam(description="Name of the transition") String transition_name,
         @ToolParam(description="Name of the place") String place_name
     ) {
-        // Trova la transition per nome
-        Transition t = petriNet.getTransitions().stream()
-            .filter(trans -> trans.getName().equals(transition_name))
-            .findFirst()
-            .orElseThrow(() -> new IllegalArgumentException("Transition not found" + transition_name));
+        Transition t = PetriNetUtils.findTransitionByName(petriNet, transition_name);
+        Place p = PetriNetUtils.findPlaceByName(petriNet, place_name);
 
-        // Trova il place per nome 
-        Place p = petriNet.getPlaces().stream()
-            .filter(place -> place.getName().equals(place_name))
-            .findFirst()
-            .orElseThrow(() -> new IllegalArgumentException("Place not found" + place_name));
         petriNet.addPostcondition(t, p);
         return petriNet;
     }
@@ -217,17 +167,8 @@ public class SirioService {
             @ToolParam(description = "Name of the place") String place_name,
             @ToolParam(description = "Name of the transition") String transition_name
     ){
-        // Trova la transition per nome
-        Transition t = petriNet.getTransitions().stream()
-                .filter(trans -> trans.getName().equals(transition_name))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Transition not found" + transition_name));
-
-        // Trova il place per nome
-        Place p = petriNet.getPlaces().stream()
-                .filter(place -> place.getName().equals(place_name))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Place not found" + place_name));
+        Transition t = PetriNetUtils.findTransitionByName(petriNet, transition_name);
+        Place p = PetriNetUtils.findPlaceByName(petriNet, place_name);
 
         Postcondition pc = petriNet.getPostcondition(t, p);
         petriNet.removePostcondition(pc);
@@ -239,15 +180,8 @@ public class SirioService {
         @ToolParam(description = "Name of the place") String place_name,
         @ToolParam(description = "Name of the transition") String transition_name
     ) {
-        Place p = petriNet.getPlaces().stream()
-            .filter(place -> place.getName().equals(place_name))
-            .findFirst()
-            .orElseThrow(() -> new IllegalArgumentException("Place not found" + place_name));
-
-        Transition t = petriNet.getTransitions().stream()
-            .filter(trans -> trans.getName().equals(transition_name))
-            .findFirst()
-            .orElseThrow(() -> new IllegalArgumentException("Transition not found" + transition_name));
+        Place p = PetriNetUtils.findPlaceByName(petriNet, place_name);
+        Transition t = PetriNetUtils.findTransitionByName(petriNet, transition_name);
         
         InhibitorArc ia = petriNet.getInhibitorArc(p, t);
         petriNet.removeInhibitorArc(ia);
@@ -265,10 +199,8 @@ public class SirioService {
             @ToolParam(description = "Name of the place") String name,
             @ToolParam(description = "Number of tokens to be added") int num
     ) {
-        Place p = petriNet.getPlaces().stream()
-                .filter(place -> place.getName().equals(name))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Place not found" + name));
+        Place p = PetriNetUtils.findPlaceByName(petriNet, name);
+
         marking.addTokens(p, num);
         return marking;
     }
@@ -278,15 +210,8 @@ public class SirioService {
             @ToolParam(description = "Name of the source place") String source_name,
             @ToolParam(description = "Name of the target transition") String transition_name
     ) {
-        Place source = petriNet.getPlaces().stream()
-                .filter(place -> place.getName().equals(source_name))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Place not found" + source_name));
-
-        Transition target = petriNet.getTransitions().stream()
-                .filter(trans -> trans.getName().equals(transition_name))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Transition not found" + transition_name));
+        Place source = PetriNetUtils.findPlaceByName(petriNet, source_name);
+        Transition target = PetriNetUtils.findTransitionByName(petriNet, transition_name);
 
         petriNet.addInhibitorArc(source, target);
         return petriNet;
@@ -297,10 +222,7 @@ public class SirioService {
             @ToolParam(description = "Condition of the enabling function, boolean expression as String (ex. 'place_name == 1')") String condition,
             @ToolParam(description = "Transition to apply the enabling function to")  String transition_name
     ) {
-        Transition target = petriNet.getTransitions().stream()
-                .filter(trans -> trans.getName().equals(transition_name))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Transition not found" + transition_name));
+        Transition target = PetriNetUtils.findTransitionByName(petriNet, transition_name);
 
         target.addFeature(new EnablingFunction(condition));
     }
