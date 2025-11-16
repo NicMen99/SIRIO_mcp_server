@@ -27,7 +27,7 @@ public class SirioService {
     }
 
     @Tool(name = "add_places", description = "Add new places to the net")
-    public PetriNet addPlaces(String ... node_names) {
+    public PetriNet addPlaces(List<String> node_names) {
         for (String nodeName : node_names) {
             petriNet.addPlace(nodeName);
         }
@@ -35,7 +35,7 @@ public class SirioService {
     }
 
     @Tool(name = "remove_places", description = "Remove existent places from the net")
-    public PetriNet removePlaces(String ... node_names) {
+    public PetriNet removePlaces(List<String> node_names) {
         List<Place> places_to_be_removed = new ArrayList<Place>();
         for (String nodeName : node_names) {
             Place p = petriNet.getPlace(nodeName);
@@ -48,7 +48,7 @@ public class SirioService {
     }
 
     @Tool(name = "add_transitions", description = "Add new transitions to the net")
-    public PetriNet addTransitions(String ... transition_names) {
+    public PetriNet addTransitions(List<String> transition_names) {
         for (String transitionName : transition_names) {
             petriNet.addTransition(transitionName);
         }
@@ -56,7 +56,7 @@ public class SirioService {
     }
 
     @Tool(name = "remove_transitions", description = "Remove existent transitions from the net")
-    public PetriNet removeTransitions(String ... transition_names) {
+    public PetriNet removeTransitions(List<String> transition_names) {
         List<Transition> transitions_to_be_removed = new ArrayList<Transition>();
         for (String transitionName : transition_names) {
             Transition t = petriNet.getTransition(transitionName);
