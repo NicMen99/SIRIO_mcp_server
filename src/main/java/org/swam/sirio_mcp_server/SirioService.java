@@ -228,7 +228,7 @@ public class SirioService {
     }
 
     @Tool(name = "execute_steady_state_analysis", description = "Executes a steady state analysis on a generalized stochastic petri net. This requires all the transitions to be immediate (with firing time deterministic and equal to 0) or exponential (with firing time distributed as an exponential random variable with rate lambda)")
-    public Map<Marking, Double> executeTransientAnalysis() {
+    public Map<Marking, Double> executeSteadyStateAnalysis() {
         return GSPNSteadyState.builder().build().compute(petriNet, marking);
     }
 }
