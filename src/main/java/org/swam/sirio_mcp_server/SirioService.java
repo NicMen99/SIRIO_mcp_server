@@ -1,19 +1,28 @@
 package org.swam.sirio_mcp_server;
 
-import org.swam.pn_utils.*;
-
-import org.oristool.models.gspn.GSPNSteadyState;
-import org.oristool.models.stpn.trees.StochasticTransitionFeature;
-import org.oristool.petrinet.*;
-import org.springframework.ai.tool.annotation.Tool;
-import org.springframework.ai.tool.annotation.ToolParam;
-import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.oristool.models.gspn.GSPNSteadyState;
+import org.oristool.models.gspn.GSPNTransient;
+import org.oristool.models.stpn.trees.StochasticTransitionFeature;
+import org.oristool.petrinet.EnablingFunction;
+import org.oristool.petrinet.InhibitorArc;
+import org.oristool.petrinet.Marking;
+import org.oristool.petrinet.PetriNet;
+import org.oristool.petrinet.Place;
+import org.oristool.petrinet.Postcondition;
+import org.oristool.petrinet.Precondition;
+import org.oristool.petrinet.Transition;
+import org.oristool.util.Pair;
+import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.ai.tool.annotation.ToolParam;
+import org.springframework.stereotype.Service;
+import org.swam.pn_utils.PetriNetUtils;
 
 @Service
 public class SirioService {
@@ -230,5 +239,49 @@ public class SirioService {
     @Tool(name = "execute_steady_state_analysis", description = "Executes a steady state analysis on a generalized stochastic petri net. This requires all the transitions to be immediate (with firing time deterministic and equal to 0) or exponential (with firing time distributed as an exponential random variable with rate lambda)")
     public Map<Marking, Double> executeSteadyStateAnalysis() {
         return GSPNSteadyState.builder().build().compute(petriNet, marking);
+    }
+
+    @Tool(name = "execute_transient_analysis", description = "Executes a transient analysis on a generalized stochastic petri net at specific time points. This requires all the transitions to be immediate (with firing time deterministic and equal to 0) or exponential (with firing time distributed as an exponential random variable with rate lambda) and a list of time points")
+    public Map<Double, Map<Marking, Double>> executeTransientAnalysis(
+            @ToolParam(description = "A list of time points to compute probabilities for (e.g., [1.0, 5.0, 10.0])") List<Double> timePoints
+    ) {
+        if (petriNet == null || marking == null) {  // TODO mah, questo forse non serve, lo capisce da solo?
+            throw new IllegalStateException("Petri net and marking must be created before running analysis.");
+        }
+
+        // Il GSPNTransient.builder accetta un array di double[] --> Converto la lista di Double in un array di double 
+        double[] timePointsArray = timePoints.stream()
+                                             .mapToDouble(Double::doubleValue)
+                                             .toArray();
+
+        // Creo l'analizzatore ed eseguo i calcoli
+        Pair<Map<Marking, Integer>, double[][]> result = GSPNTransient.builder()
+            .timePoints(timePointsArray)            // Costruisce l'analizzatore
+            .build().compute(petriNet, marking);    // Esegue il calcolo    
+        
+        // Estraggo i risultati
+        Map<Marking, Integer> statePos = result.first();
+        double[][] probs = result.second(); // [indice_tempo][indice_stato]
+
+        Map<Double, Map<Marking, Double>> transientResults = new HashMap<>();
+
+        // Ciclo principale sugli istanti di tempo (corrispondenti alle righe della matrice)
+        for (int t_idx = 0; t_idx < timePointsArray.length; t_idx++) {
+            double currentTime = timePointsArray[t_idx];
+            Map<Marking, Double> probsAtThisTime = new HashMap<>();
+
+            // Per ogni istante, estraiamo le probabilità di tutti gli stati
+            for (Map.Entry<Marking, Integer> entry : statePos.entrySet()) {
+                Marking m = entry.getKey();
+                int state_idx = entry.getValue(); // Indice di colonna
+                
+                if (t_idx < probs.length && state_idx < probs[t_idx].length) {
+                    double prob = probs[t_idx][state_idx];
+                    probsAtThisTime.put(m, prob);   // Potrei mettere un controllo prob > 0.0 per pulire l'output?
+                }
+            }
+            transientResults.put(currentTime, probsAtThisTime);
+        }
+        return transientResults;
     }
 }
