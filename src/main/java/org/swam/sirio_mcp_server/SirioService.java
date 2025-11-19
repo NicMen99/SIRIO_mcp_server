@@ -10,6 +10,8 @@ import java.util.Map;
 import org.oristool.models.gspn.GSPNSteadyState;
 import org.oristool.models.gspn.GSPNTransient;
 import org.oristool.models.stpn.trees.StochasticTransitionFeature;
+import org.oristool.models.pn.PetriTokensAdder;
+import org.oristool.models.pn.PetriTokensRemover;
 import org.oristool.petrinet.EnablingFunction;
 import org.oristool.petrinet.InhibitorArc;
 import org.oristool.petrinet.Marking;
@@ -197,6 +199,8 @@ public class SirioService {
         return petriNet;
     }
 
+    // TODO aggiungere remove token?
+
     @Tool(name = "create_marking", description = "Creates an empty marking for the current Petri Net")
     public Marking createMarking() {
         marking = new Marking();
@@ -245,7 +249,7 @@ public class SirioService {
     public Map<Double, Map<Marking, Double>> executeTransientAnalysis(
             @ToolParam(description = "A list of time points to compute probabilities for (e.g., [1.0, 5.0, 10.0])") List<Double> timePoints
     ) {
-        if (petriNet == null || marking == null) {  // TODO mah, questo forse non serve, lo capisce da solo?
+        if (petriNet == null || marking == null) {
             throw new IllegalStateException("Petri net and marking must be created before running analysis.");
         }
 
@@ -283,5 +287,37 @@ public class SirioService {
             transientResults.put(currentTime, probsAtThisTime);
         }
         return transientResults;
+    }
+
+    @Tool(name = "get_enabled_transitions", description = "Get a list of transitions that are currently enabled and can be fired")
+    public List<String> getEnabledTransitions() {
+        if (petriNet == null || marking == null){
+            throw new IllegalStateException("Petri net and marking must be created first.");
+        }
+        return petriNet.getEnabledTransitions(marking).stream()
+                    .map(Transition::getName)
+                    .collect(java.util.stream.Collectors.toList());
+    }
+
+    @Tool(name = "fire_transition", description = "Fires a specific transition to advance the marking (Token Game). Updates the current marking of the system")
+    public String fireTransition(
+        @ToolParam(description = "Name of the transition to fire") String transition_name
+    ) {
+        if (petriNet == null || marking == null) {
+            throw new IllegalStateException("Petri net and marking must be created first.");
+        }
+        Transition t = PetriNetUtils.findTransitionByName(petriNet, transition_name);
+
+        if (!petriNet.isEnabled(t, marking)) {  // Controllo che la transizione sia attiva
+            throw new IllegalArgumentException("Transition " + transition_name + " is not enabled in the current marking.");
+        }
+        
+        PetriTokensAdder pta = new PetriTokensAdder();
+        pta.update(marking, petriNet, t);
+
+        PetriTokensRemover ptr = new PetriTokensRemover();
+        ptr.update(marking, petriNet, t);
+
+        return marking.toString();
     }
 }

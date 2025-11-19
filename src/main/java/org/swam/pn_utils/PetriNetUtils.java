@@ -11,14 +11,14 @@ public final class PetriNetUtils {
         return pn.getPlaces().stream()
             .filter(place -> place.getName().equals(name))
             .findFirst()
-            .orElseThrow(() -> new IllegalArgumentException("Place not found" + name));
+            .orElseThrow(() -> new IllegalArgumentException("Place not found: " + name));
     }
 
     public static Transition findTransitionByName(PetriNet pn, String name) {
         return pn.getTransitions().stream()
                 .filter(trans -> trans.getName().equals(name))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Transition not found" + name));
+                .orElseThrow(() -> new IllegalArgumentException("Transition not found: " + name));
     }
 
     public static Transition findOrCreateTransitionByName(PetriNet pn, String name) {
