@@ -32,9 +32,9 @@ public class SirioService {
     private Marking marking = null;
 
     @Tool(name="create", description = "Create an empty petri net")
-    public PetriNet createPetriNet() {
+    public void createPetriNet() {
         petriNet =  new PetriNet();
-        return petriNet;
+        marking = new Marking();
     }
 
     @Tool(name = "add_places", description = "Add new places to the net")
@@ -199,12 +199,9 @@ public class SirioService {
         return petriNet;
     }
 
-    // TODO aggiungere remove token?
-
-    @Tool(name = "create_marking", description = "Creates an empty marking for the current Petri Net")
-    public Marking createMarking() {
+    @Tool(name = "reset_marking", description = "Reset the current marking of the system to empty")
+    public void resetMarking() {
         marking = new Marking();
-        return marking;
     }
 
     @Tool(name = "add_tokens", description = "Add a specific number of tokens to a place")
@@ -215,6 +212,17 @@ public class SirioService {
         Place p = PetriNetUtils.findPlaceByName(petriNet, name);
 
         marking.addTokens(p, num);
+        return marking;
+    }
+
+    @Tool(name = "remove_tokens", description = "Remove a specific number of tokens from a place")
+    public Marking removeToken(
+            @ToolParam(description = "Name of the place") String name,
+            @ToolParam(description = "Number of tokens to be removed") int num
+    ) {
+        Place p = PetriNetUtils.findPlaceByName(petriNet, name);
+
+        marking.removeTokens(p, num);
         return marking;
     }
 
@@ -245,9 +253,9 @@ public class SirioService {
         return GSPNSteadyState.builder().build().compute(petriNet, marking);
     }
 
-    @Tool(name = "execute_transient_analysis", description = "Executes a transient analysis on a generalized stochastic petri net at specific time points. This requires all the transitions to be immediate (with firing time deterministic and equal to 0) or exponential (with firing time distributed as an exponential random variable with rate lambda) and a list of time points")
+    @Tool(name = "execute_transient_analysis", description = "Executes a transient analysis on a generalized stochastic petri net at specific time points. This requires all the transitions to be immediate (with firing time deterministic and equal to 0) or exponential (with firing time distributed as an exponential random variable with rate lambda) and either a list of time points or a time range (start, end, step). Returns the probability distribution over markings at each specified time point.")
     public Map<Double, Map<Marking, Double>> executeTransientAnalysis(
-            @ToolParam(description = "A list of time points to compute probabilities for (e.g., [1.0, 5.0, 10.0])") List<Double> timePoints
+            @ToolParam(description = "A list of time points to compute probabilities for (e.g., [1.0, 5.0, 10.0]) or a time range (start, end, step) (e.g. given [0.0, 2.0, 0.2], the resulting time points will be [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0])") List<Double> timePoints
     ) {
         if (petriNet == null || marking == null) {
             throw new IllegalStateException("Petri net and marking must be created before running analysis.");
