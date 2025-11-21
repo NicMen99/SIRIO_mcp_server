@@ -27,6 +27,11 @@ import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Service;
 import org.swam.pn_utils.PetriNetUtils;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 @Service
 public class SirioService {
 
@@ -35,6 +40,8 @@ public class SirioService {
     // --------------------------
     private PetriNet petriNet = null;
     private Marking marking = null;
+
+    ObjectMapper om = new ObjectMapper().configure(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY, true);
 
     @Tool(name="create", description = "Create an empty petri net with an empty marking")
     public void createPetriNet() {
@@ -358,12 +365,19 @@ public class SirioService {
     // --------------------------
 
     @Tool(name = "execute_steady_state_analysis", description = "Executes a steady state analysis on a generalized stochastic petri net. This requires all the transitions to be immediate (with firing time deterministic and equal to 0) or exponential (with firing time distributed as an exponential random variable with rate lambda)")
-    public Map<Marking, Double> executeSteadyStateAnalysis() {
-        return GSPNSteadyState.builder().build().compute(petriNet, marking);
+    public String executeSteadyStateAnalysis() {
+        Map<Marking, Double> result = GSPNSteadyState.builder().build().compute(petriNet, marking);
+        String stringResult = "";
+        try {
+            stringResult = om.writeValueAsString(result);
+        } catch (JsonProcessingException e) {
+            return stringResult;
+        }
+        return stringResult;
     }
 
     @Tool(name = "execute_transient_analysis", description = "Executes a transient analysis on a generalized stochastic petri net at specific time points. This requires all the transitions to be immediate (with firing time deterministic and equal to 0) or exponential (with firing time distributed as an exponential random variable with rate lambda) and either a list of time points or a time range (start, end, step). Returns the probability distribution over markings at each specified time point.")
-    public Map<Double, Map<Marking, Double>> executeTransientAnalysis(
+    public String executeTransientAnalysis(
             @ToolParam(description = "A list of time points to compute probabilities for (e.g., [1.0, 5.0, 10.0]) or a time range (start, end, step) (e.g. given [0.0, 2.0, 0.2], the resulting time points will be [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0])") List<Double> timePoints
     ) {
         if (petriNet == null || marking == null) {
@@ -403,6 +417,12 @@ public class SirioService {
             }
             transientResults.put(currentTime, probsAtThisTime);
         }
-        return transientResults;
+        String tResults = "";
+        try {
+            tResults = om.writeValueAsString(transientResults);
+        } catch (JsonProcessingException e) {
+            return tResults;
+        }
+        return tResults;
     }
 }
