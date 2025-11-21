@@ -9,6 +9,7 @@ import java.util.Map;
 
 import org.oristool.models.gspn.GSPNSteadyState;
 import org.oristool.models.gspn.GSPNTransient;
+import org.oristool.models.stpn.MarkingExpr;
 import org.oristool.models.stpn.trees.StochasticTransitionFeature;
 import org.oristool.models.pn.PetriTokensAdder;
 import org.oristool.models.pn.PetriTokensRemover;
@@ -110,7 +111,6 @@ public class SirioService {
             @ToolParam(description = "latest firing time") String ltf
     ) {
         Transition t = PetriNetUtils.findOrCreateTransitionByName(petriNet, transition_name);
-
         t.addFeature(StochasticTransitionFeature.newUniformInstance(etf, ltf));
     }
 
@@ -120,7 +120,6 @@ public class SirioService {
             @ToolParam(description = "timer value") String value
     ) {
         Transition t = PetriNetUtils.findOrCreateTransitionByName(petriNet, transition_name);
-
         t.addFeature(StochasticTransitionFeature.newDeterministicInstance(value));
     }
 
@@ -129,18 +128,33 @@ public class SirioService {
             @ToolParam(description = "name of transition") String transition_name
     ) {
         Transition t = PetriNetUtils.findOrCreateTransitionByName(petriNet, transition_name);
-
         t.addFeature(StochasticTransitionFeature.newDeterministicInstance("0"));
     }
 
     @Tool(name = "add_EXP", description = "Add a new transition with a exponential timer and variable rate")
-    public void addEXP(
+    public String addEXP(
             @ToolParam(description = "name of transition") String transition_name,
-            @ToolParam(description = "rate value") BigDecimal rate
+            @ToolParam(description = "rate value") double rate,
+            @ToolParam(description = "Optional scaling rate value. If not valid, the model will provide an explanation and clarify the problem and how to solve it", required = false) Double clockRate,
+            @ToolParam(description = "Optional weight of the transition", required = false) Double weight
+
     ) {
         Transition t = PetriNetUtils.findOrCreateTransitionByName(petriNet, transition_name);
 
-        t.addFeature(StochasticTransitionFeature.newExponentialInstance(rate));
+        MarkingExpr clockRateExpr = (clockRate != null) ? MarkingExpr.of(clockRate) : MarkingExpr.ONE;
+        MarkingExpr weightExpr = (weight != null && clockRate != null) ? MarkingExpr.of(weight) : MarkingExpr.ONE;  // If weight is provided, clockRate must be provided too, as per function signature
+
+        t.addFeature(StochasticTransitionFeature.newExponentialInstance(
+            BigDecimal.valueOf(rate),
+            clockRateExpr,
+            weightExpr
+        ));
+        String features = "";
+        for (var feature : t.getFeatures()) {
+            features += feature.toString() + " ";
+        }
+
+        return "Exponential transition added successfully: " + features;
     }
 
     // --------------------------
@@ -219,6 +233,46 @@ public class SirioService {
         ptr.update(marking, petriNet, t);
 
         return marking.toString();
+    }
+
+    @Tool(name = "get_transition_features", description = "Retrieves the detailed features (density, weight, clockRate) of a specific transition.")
+    public String getTransitionFeatures(
+            @ToolParam(description = "The name of the transition to inspect") String transition_name
+    ) {
+        if (petriNet == null) {
+            throw new IllegalStateException("Petri net must be created first.");
+        }
+
+        Transition t = PetriNetUtils.findTransitionByName(petriNet, transition_name);
+        StringBuilder output = new StringBuilder();
+        output.append("Features for transition '").append(transition_name).append("':\n");
+
+        boolean foundStochastic = false;
+
+        for (var feature : t.getFeatures()) {
+            // Controllo se è la feature che ci interessa
+            if (feature instanceof StochasticTransitionFeature) {
+                StochasticTransitionFeature stf = (StochasticTransitionFeature) feature;
+                foundStochastic = true;
+
+                output.append("  [StochasticTransitionFeature]\n");
+                output.append("    Density (Distribution): ").append(stf.density()).append("\n");
+                output.append("    Weight: ").append(stf.weight()).append("\n");
+
+                // NOTA: Il metodo pubblico .clockRate() restituisce il valore del campo 'clockRate'
+                output.append("    ClockRate: ").append(stf.clockRate()).append("\n");
+            } else {
+                // Gestione generica per altre feature (es. EnablingFunction)
+                output.append("  [").append(feature.getClass().getSimpleName()).append("]\n");
+                output.append("    Value: ").append(feature.toString()).append("\n");
+            }
+        }
+
+        if (!foundStochastic) {
+            output.append("  No stochastic features found (transition might be generic or IMMEDIATE default).");
+        }
+
+        return output.toString();
     }
 
     // --------------------------
