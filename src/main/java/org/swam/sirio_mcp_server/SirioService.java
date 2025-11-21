@@ -144,24 +144,15 @@ public class SirioService {
             @ToolParam(description = "rate value") double rate,
             @ToolParam(description = "Optional scaling rate value. If not valid, the model will provide an explanation and clarify the problem and how to solve it", required = false) Double clockRate,
             @ToolParam(description = "Optional weight of the transition", required = false) Double weight
-
     ) {
         Transition t = PetriNetUtils.findOrCreateTransitionByName(petriNet, transition_name);
 
-        MarkingExpr clockRateExpr = (clockRate != null) ? MarkingExpr.of(clockRate) : MarkingExpr.ONE;
-        MarkingExpr weightExpr = (weight != null && clockRate != null) ? MarkingExpr.of(weight) : MarkingExpr.ONE;  // If weight is provided, clockRate must be provided too, as per function signature
-
-        t.addFeature(StochasticTransitionFeature.newExponentialInstance(
-            BigDecimal.valueOf(rate),
-            clockRateExpr,
-            weightExpr
+        t.addFeature(StochasticTransitionFeature.newExponentialInstance(BigDecimal.valueOf(rate),
+            (clockRate != null) ? MarkingExpr.of(clockRate) : MarkingExpr.ONE,
+            (weight != null) ? MarkingExpr.of(weight) : MarkingExpr.ONE  // If weight is provided, clockRate must be provided too, as per function signature
         ));
-        String features = "";
-        for (var feature : t.getFeatures()) {
-            features += feature.toString() + " ";
-        }
 
-        return "Exponential transition added successfully: " + features;
+        return "Exponential transition added successfully.";
     }
 
     // --------------------------
