@@ -13,6 +13,7 @@ import org.oristool.models.stpn.MarkingExpr;
 import org.oristool.models.stpn.trees.StochasticTransitionFeature;
 import org.oristool.models.pn.PetriTokensAdder;
 import org.oristool.models.pn.PetriTokensRemover;
+import org.oristool.models.pn.Priority;
 import org.oristool.petrinet.EnablingFunction;
 import org.oristool.petrinet.InhibitorArc;
 import org.oristool.petrinet.Marking;
@@ -160,6 +161,20 @@ public class SirioService {
         ));
 
         return "Exponential transition added successfully.";
+    }
+
+    @Tool(name = "set_transition_priority", description = "Set the priority of a specific transition")
+    public String setTransitionPriority(
+            @ToolParam(description = "name of transition") String transition_name,
+            @ToolParam(description = "priority value") int priority
+    ) {
+        Transition t = PetriNetUtils.findOrCreateTransitionByName(petriNet, transition_name);
+        if (priority < 0) {
+            throw new IllegalArgumentException("Priority must be a non-negative integer.");
+        }
+        t.removeFeature(Priority.class); // Rimuove eventuali priorità esistenti
+        t.addFeature(new Priority(priority));
+        return "Transition priority set successfully to " + priority + ".";
     }
 
     // --------------------------
