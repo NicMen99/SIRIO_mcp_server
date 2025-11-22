@@ -6,6 +6,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 
 import org.oristool.models.gspn.GSPNSteadyState;
 import org.oristool.models.gspn.GSPNTransient;
@@ -255,44 +257,87 @@ public class SirioService {
         return marking.toString();
     }
 
-    @Tool(name = "get_transition_features", description = "Retrieves the detailed features (density, weight, clockRate) of a specific transition.")
+@Tool(name = "get_transition_features", description = "Retrieves all features and parameters of a specific transition using deep reflection.")
     public String getTransitionFeatures(
-            @ToolParam(description = "The name of the transition to inspect") String transition_name
-    ) {
+            @ToolParam(description = "The name of the transition to inspect") String transition_name) {
+        
         if (petriNet == null) {
             throw new IllegalStateException("Petri net must be created first.");
         }
 
         Transition t = PetriNetUtils.findTransitionByName(petriNet, transition_name);
         StringBuilder output = new StringBuilder();
-        output.append("Features for transition '").append(transition_name).append("':\n");
+        output.append("=== Features for transition '").append(transition_name).append("' ===\n");
 
-        boolean foundStochastic = false;
+        if (t.getFeatures().isEmpty()) {
+            output.append("No features found (Standard Immediate Transition).\n");
+            return output.toString();
+        }
 
+        // CICLO UNICO PER TUTTE LE FEATURE
         for (var feature : t.getFeatures()) {
-            // Controllo se è la feature che ci interessa
+            Class<?> featureClass = feature.getClass();
+            String simpleName = featureClass.getSimpleName();
+            
+            output.append("\n[").append(simpleName).append("]\n");
+
+            // SE È LA FEATURE STOCASTICA, VOGLIAMO VEDERE DENTRO LA 'density'
+            // Questo è l'unico "if" speciale, perché la struttura di Sirio annida la distribuzione
             if (feature instanceof StochasticTransitionFeature) {
                 StochasticTransitionFeature stf = (StochasticTransitionFeature) feature;
-                foundStochastic = true;
+                var density = stf.density();
 
-                output.append("  [StochasticTransitionFeature]\n");
-                output.append("    Density (Distribution): ").append(stf.density()).append("\n");
-                output.append("    Weight: ").append(stf.weight()).append("\n");
-
-                // NOTA: Il metodo pubblico .clockRate() restituisce il valore del campo 'clockRate'
-                output.append("    ClockRate: ").append(stf.clockRate()).append("\n");
+                output.append("  > Distribution Type: ").append(density.getClass().getSimpleName()).append("\n");
+                
+                // Ispeziona i campi dell'oggetto DENSITY (es. rate, eft, lft)
+                printAllFields(density, output, "    - ");
+                
+                // Stampa anche i campi base della feature (weight, clockRate)
+                output.append("  > Base Parameters:\n");
+                output.append("    - Weight: ").append(stf.weight()).append("\n");
+                output.append("    - ClockRate: ").append(stf.clockRate()).append("\n");
+                
             } else {
-                // Gestione generica per altre feature (es. EnablingFunction)
-                output.append("  [").append(feature.getClass().getSimpleName()).append("]\n");
-                output.append("    Value: ").append(feature.toString()).append("\n");
+                // PER QUALSIASI ALTRA FEATURE (EnablingFunction, Priority, ecc.)
+                // Ispeziona direttamente i suoi campi
+                printAllFields(feature, output, "  - ");
             }
         }
 
-        if (!foundStochastic) {
-            output.append("  No stochastic features found (transition might be generic or IMMEDIATE default).");
+        return output.toString();
+    }
+
+    // Metodo helper per stampare i campi via Reflection
+    private void printAllFields(Object obj, StringBuilder output, String prefix) {
+        Class<?> objClass = obj.getClass();
+        // Prende tutti i campi, inclusi quelli privati
+        Field[] fields = objClass.getDeclaredFields();
+
+        if (fields.length == 0) {
+            // Se non ha campi, stampiamo il toString() come fallback
+            output.append(prefix).append("Value: ").append(obj.toString()).append("\n");
+            return;
         }
 
-        return output.toString();
+        for (Field field : fields) {
+            try {
+                // TODO valutare se tenere questo hack o trovare un modo migliore
+                //field.setAccessible(true); // HACK "Scassina" i campi privati
+
+                // Saltiamo i campi statici o costanti inutili
+                if (Modifier.isStatic(field.getModifiers())) {
+                    continue;
+                }
+
+                String name = field.getName();
+                Object value = field.get(obj);
+
+                output.append(prefix).append(name).append(": ").append(value).append("\n");
+
+            } catch (Exception e) {
+                // Ignora errori di accesso
+            }
+        }
     }
 
     // --------------------------
