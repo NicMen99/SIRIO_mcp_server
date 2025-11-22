@@ -114,20 +114,26 @@ public class SirioService {
     @Tool(name = "add_UNI", description = "Add a new uniformely distributed transition")
     public void addUNI(
             @ToolParam(description = "name of transition") String transition_name,
-            @ToolParam(description = "earliest firing time") String etf,
-            @ToolParam(description = "latest firing time") String ltf
+            @ToolParam(description = "earliest firing time") double eft,
+            @ToolParam(description = "latest firing time") double lft,
+            @ToolParam(description = "Optional scaling rate value. If not valid, the model will provide an explanation and clarify the problem and how to solve it", required = false) Double clockRate
     ) {
         Transition t = PetriNetUtils.findOrCreateTransitionByName(petriNet, transition_name);
-        t.addFeature(StochasticTransitionFeature.newUniformInstance(etf, ltf));
+        t.addFeature(StochasticTransitionFeature.newUniformInstance(BigDecimal.valueOf(eft), BigDecimal.valueOf(lft), clockRate != null ? MarkingExpr.of(clockRate) : MarkingExpr.ONE));
     }
 
     @Tool(name = "add_DET", description = "Add a new transition with a deterministic timer")
     public void addDET(
             @ToolParam(description = "name of transition") String transition_name,
-            @ToolParam(description = "timer value") String value
+            @ToolParam(description = "timer value") double value,
+            @ToolParam(description = "Optional scaling rate value. If not valid, the model will provide an explanation and clarify the problem and how to solve it", required = false) Double clockRate,
+            @ToolParam(description = "Optional weight of the transition", required = false) Double weight
     ) {
         Transition t = PetriNetUtils.findOrCreateTransitionByName(petriNet, transition_name);
-        t.addFeature(StochasticTransitionFeature.newDeterministicInstance(value));
+
+        t.addFeature(StochasticTransitionFeature.newDeterministicInstance(BigDecimal.valueOf(value), 
+                weight != null ? MarkingExpr.of(weight) : MarkingExpr.ONE,
+                clockRate != null ? MarkingExpr.of(clockRate) : MarkingExpr.ONE));
     }
 
     @Tool(name = "add_IMM", description = "Add a new immediate transition")
@@ -135,6 +141,7 @@ public class SirioService {
             @ToolParam(description = "name of transition") String transition_name
     ) {
         Transition t = PetriNetUtils.findOrCreateTransitionByName(petriNet, transition_name);
+
         t.addFeature(StochasticTransitionFeature.newDeterministicInstance("0"));
     }
 
