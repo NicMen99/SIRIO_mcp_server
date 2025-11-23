@@ -67,14 +67,23 @@ public class SirioService {
 
     @Tool(name = "remove_places", description = "Remove existent places from the net")
     public PetriNet removePlaces(List<String> node_names) {
-        List<Place> places_to_be_removed = new ArrayList<Place>();
-        for (String nodeName : node_names) {
-            Place p = petriNet.getPlace(nodeName);
-            places_to_be_removed.add(p);
-        }
-        for (Place place : places_to_be_removed) {
-            petriNet.removePlace(place);
-        }
+        petriNet.getTransitions().stream()
+                .map(petriNet::getPreconditions)
+                .flatMap(Collection::stream)
+                .filter(p -> node_names.contains(p.getPlace().getName()))
+                .forEach(petriNet::removePrecondition);
+
+        petriNet.getTransitions().stream()
+                .map(petriNet::getPostconditions)
+                .flatMap(Collection::stream)
+                .filter(p -> node_names.contains(p.getPlace().getName()))
+                .forEach(petriNet::removePostcondition);
+
+        node_names.stream()
+                .map(petriNet::getPlace)
+                .filter(java.util.Objects::nonNull)
+                .forEach(petriNet::removePlace);
+
         return petriNet;
     }
 
@@ -92,26 +101,19 @@ public class SirioService {
 
     @Tool(name = "remove_transitions", description = "Remove existent transitions from the net")
     public PetriNet removeTransitions(List<String> transition_names) {
-        List<Transition> transitions_to_be_removed = new ArrayList<Transition>();
-        for (String transitionName : transition_names) {
-            Transition t = petriNet.getTransition(transitionName);
-            transitions_to_be_removed.add(t);
-        }
-        for (Transition transition : transitions_to_be_removed) {
-            Collection<Precondition> affected_preconds = petriNet.getPreconditions(transition);
-            for (Precondition precond : affected_preconds) {
-                petriNet.removePrecondition(precond);
-            }
-            Collection<Postcondition> affected_postconds = petriNet.getPostconditions(transition);
-            for (Postcondition postcond : affected_postconds) {
-                petriNet.removePostcondition(postcond);
-            }
-            Collection<InhibitorArc> affected_inhibitor_arcs = petriNet.getInhibitorArcs(transition);
-            for (InhibitorArc inhibitor_arc : affected_inhibitor_arcs) {
-                petriNet.removeInhibitorArc(inhibitor_arc);
-            }
-            petriNet.removeTransition(transition);
-        }
+        transition_names.stream()
+                .map(petriNet::getTransition)
+                .filter(java.util.Objects::nonNull)
+                .forEach(transition -> {
+                        petriNet.getPreconditions(transition)
+                                .forEach(petriNet::removePrecondition);
+                        petriNet.getPostconditions(transition)
+                                .forEach(petriNet::removePostcondition);
+                        petriNet.getInhibitorArcs(transition)
+                                .forEach(petriNet::removeInhibitorArc);
+                        petriNet.removeTransition(transition);
+                });
+
         return petriNet;
     }
 
