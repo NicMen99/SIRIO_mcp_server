@@ -27,4 +27,10 @@ public final class PetriNetUtils {
                 .findFirst()
                 .orElseGet(() -> pn.addTransition(name));
     }
+
+    public static void checkNetAndMarking(PetriNet pn, Marking marking) {
+        if (pn == null || marking == null) {
+            throw new IllegalStateException("Petri net and marking must be created first.");
+        }
+    }
 }

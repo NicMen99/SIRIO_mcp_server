@@ -59,6 +59,7 @@ public class SirioService {
 
     @Tool(name = "add_places", description = "Add new places to the net")
     public PetriNet addPlaces(List<String> node_names) {
+        PetriNetUtils.checkNetAndMarking(petriNet, marking);
         for (String nodeName : node_names) {
             petriNet.addPlace(nodeName);
         }
@@ -67,6 +68,7 @@ public class SirioService {
 
     @Tool(name = "remove_places", description = "Remove existent places from the net")
     public PetriNet removePlaces(List<String> node_names) {
+        PetriNetUtils.checkNetAndMarking(petriNet, marking);
         petriNet.getTransitions().stream()
                 .map(petriNet::getPreconditions)
                 .flatMap(Collection::stream)
@@ -93,6 +95,7 @@ public class SirioService {
 
     @Tool(name = "add_transitions", description = "Add new transitions to the net")
     public PetriNet addTransitions(List<String> transition_names) {
+        PetriNetUtils.checkNetAndMarking(petriNet, marking);
         for (String transitionName : transition_names) {
             petriNet.addTransition(transitionName);
         }
@@ -101,6 +104,7 @@ public class SirioService {
 
     @Tool(name = "remove_transitions", description = "Remove existent transitions from the net")
     public PetriNet removeTransitions(List<String> transition_names) {
+        PetriNetUtils.checkNetAndMarking(petriNet, marking);
         transition_names.stream()
                 .map(petriNet::getTransition)
                 .filter(java.util.Objects::nonNull)
@@ -123,6 +127,7 @@ public class SirioService {
             @ToolParam(description = "earliest firing time") double eft,
             @ToolParam(description = "latest firing time") double lft,
             @ToolParam(description = "Optional scaling rate value. If not valid, the model will provide an explanation and clarify the problem and how to solve it", required = false) Double clockRate) {
+        PetriNetUtils.checkNetAndMarking(petriNet, marking);
         Transition t = PetriNetUtils.findOrCreateTransitionByName(petriNet, transition_name);
         t.addFeature(StochasticTransitionFeature.newUniformInstance(BigDecimal.valueOf(eft), BigDecimal.valueOf(lft),
                 clockRate != null ? MarkingExpr.of(clockRate) : MarkingExpr.ONE));
@@ -134,6 +139,7 @@ public class SirioService {
             @ToolParam(description = "timer value") double value,
             @ToolParam(description = "Optional scaling rate value. If not valid, the model will provide an explanation and clarify the problem and how to solve it", required = false) Double clockRate,
             @ToolParam(description = "Optional weight of the transition", required = false) Double weight) {
+        PetriNetUtils.checkNetAndMarking(petriNet, marking);
         Transition t = PetriNetUtils.findOrCreateTransitionByName(petriNet, transition_name);
 
         t.addFeature(StochasticTransitionFeature.newDeterministicInstance(BigDecimal.valueOf(value),
@@ -144,6 +150,7 @@ public class SirioService {
     @Tool(name = "add_IMM", description = "Add a new immediate transition")
     public void addIMM(
             @ToolParam(description = "name of transition") String transition_name) {
+        PetriNetUtils.checkNetAndMarking(petriNet, marking);
         Transition t = PetriNetUtils.findOrCreateTransitionByName(petriNet, transition_name);
 
         t.addFeature(StochasticTransitionFeature.newDeterministicInstance("0"));
@@ -155,6 +162,7 @@ public class SirioService {
             @ToolParam(description = "rate value") double rate,
             @ToolParam(description = "Optional scaling rate value. If not valid, the model will provide an explanation and clarify the problem and how to solve it", required = false) Double clockRate,
             @ToolParam(description = "Optional weight of the transition", required = false) Double weight) {
+        PetriNetUtils.checkNetAndMarking(petriNet, marking);
         Transition t = PetriNetUtils.findOrCreateTransitionByName(petriNet, transition_name);
 
         t.addFeature(StochasticTransitionFeature.newExponentialInstance(BigDecimal.valueOf(rate),
@@ -169,6 +177,7 @@ public class SirioService {
     public String setTransitionPriority(
             @ToolParam(description = "name of transition") String transition_name,
             @ToolParam(description = "priority value") int priority) {
+        PetriNetUtils.checkNetAndMarking(petriNet, marking);
         Transition t = PetriNetUtils.findOrCreateTransitionByName(petriNet, transition_name);
         if (priority < 0) {
             throw new IllegalArgumentException("Priority must be a non-negative integer.");
@@ -184,6 +193,7 @@ public class SirioService {
 
     @Tool(name = "show_net", description = "Show the current status of the Petri Net")
     public String showPetriNet() {
+        PetriNetUtils.checkNetAndMarking(petriNet, marking);
         return petriNet.toString() + "\n" + marking.toString();
     }
 
@@ -196,6 +206,7 @@ public class SirioService {
     public Marking addToken(
             @ToolParam(description = "Name of the place") String name,
             @ToolParam(description = "Number of tokens to be added") int num) {
+        PetriNetUtils.checkNetAndMarking(petriNet, marking);
         Place p = PetriNetUtils.findPlaceByName(petriNet, name);
 
         marking.addTokens(p, num);
@@ -206,6 +217,7 @@ public class SirioService {
     public Marking removeToken(
             @ToolParam(description = "Name of the place") String name,
             @ToolParam(description = "Number of tokens to be removed") int num) {
+        PetriNetUtils.checkNetAndMarking(petriNet, marking);
         Place p = PetriNetUtils.findPlaceByName(petriNet, name);
 
         marking.removeTokens(p, num);
@@ -216,6 +228,7 @@ public class SirioService {
     public void addEnablingFunction(
             @ToolParam(description = "Condition of the enabling function, boolean expression as String (ex. 'place_name == 1')") String condition,
             @ToolParam(description = "Transition to apply the enabling function to") String transition_name) {
+        PetriNetUtils.checkNetAndMarking(petriNet, marking);
         Transition target = PetriNetUtils.findTransitionByName(petriNet, transition_name);
 
         target.addFeature(new EnablingFunction(condition));
@@ -223,9 +236,7 @@ public class SirioService {
 
     @Tool(name = "get_enabled_transitions", description = "Get a list of transitions that are currently enabled and can be fired")
     public List<String> getEnabledTransitions() {
-        if (petriNet == null || marking == null) {
-            throw new IllegalStateException("Petri net and marking must be created first.");
-        }
+        PetriNetUtils.checkNetAndMarking(petriNet, marking);
         return petriNet.getEnabledTransitions(marking).stream()
                 .map(Transition::getName)
                 .collect(java.util.stream.Collectors.toList());
@@ -234,9 +245,7 @@ public class SirioService {
     @Tool(name = "fire_transition", description = "Fires a specific transition to advance the marking (Token Game). Updates the current marking of the system")
     public String fireTransition(
             @ToolParam(description = "Name of the transition to fire") String transition_name) {
-        if (petriNet == null || marking == null) {
-            throw new IllegalStateException("Petri net and marking must be created first.");
-        }
+        PetriNetUtils.checkNetAndMarking(petriNet, marking);
         Transition t = PetriNetUtils.findTransitionByName(petriNet, transition_name);
 
         if (!petriNet.isEnabled(t, marking)) { // Controllo che la transizione sia attiva
@@ -256,11 +265,7 @@ public class SirioService {
     @Tool(name = "get_transition_features", description = "Retrieves all features and parameters of a specific transition using deep reflection.")
     public String getTransitionFeatures(
             @ToolParam(description = "The name of the transition to inspect") String transition_name) {
-
-        if (petriNet == null) {
-            throw new IllegalStateException("Petri net must be created first.");
-        }
-
+        PetriNetUtils.checkNetAndMarking(petriNet, marking);
         Transition t = PetriNetUtils.findTransitionByName(petriNet, transition_name);
         StringBuilder output = new StringBuilder();
         output.append("=== Features for transition '").append(transition_name).append("' ===\n");
@@ -345,6 +350,7 @@ public class SirioService {
     public PetriNet addPrecondition(
             @ToolParam(description = "Name of the place") String place_name,
             @ToolParam(description = "Name of the transition") String transition_name) {
+        PetriNetUtils.checkNetAndMarking(petriNet, marking);
         Place p = PetriNetUtils.findPlaceByName(petriNet, place_name);
         Transition t = PetriNetUtils.findTransitionByName(petriNet, transition_name);
 
@@ -356,6 +362,7 @@ public class SirioService {
     public PetriNet removePrecondition(
             @ToolParam(description = "Name of the place") String place_name,
             @ToolParam(description = "Name of the transition") String transition_name) {
+        PetriNetUtils.checkNetAndMarking(petriNet, marking);
         Place p = PetriNetUtils.findPlaceByName(petriNet, place_name);
         Transition t = PetriNetUtils.findTransitionByName(petriNet, transition_name);
 
@@ -368,6 +375,7 @@ public class SirioService {
     public PetriNet addPostcondition(
             @ToolParam(description = "Name of the transition") String transition_name,
             @ToolParam(description = "Name of the place") String place_name) {
+        PetriNetUtils.checkNetAndMarking(petriNet, marking);
         Transition t = PetriNetUtils.findTransitionByName(petriNet, transition_name);
         Place p = PetriNetUtils.findPlaceByName(petriNet, place_name);
 
@@ -379,6 +387,7 @@ public class SirioService {
     public PetriNet removePostcondition(
             @ToolParam(description = "Name of the place") String place_name,
             @ToolParam(description = "Name of the transition") String transition_name) {
+        PetriNetUtils.checkNetAndMarking(petriNet, marking);
         Transition t = PetriNetUtils.findTransitionByName(petriNet, transition_name);
         Place p = PetriNetUtils.findPlaceByName(petriNet, place_name);
 
@@ -391,6 +400,7 @@ public class SirioService {
     public PetriNet addInhibitorArc(
             @ToolParam(description = "Name of the source place") String source_name,
             @ToolParam(description = "Name of the target transition") String transition_name) {
+        PetriNetUtils.checkNetAndMarking(petriNet, marking);
         Place source = PetriNetUtils.findPlaceByName(petriNet, source_name);
         Transition target = PetriNetUtils.findTransitionByName(petriNet, transition_name);
 
@@ -402,6 +412,7 @@ public class SirioService {
     public PetriNet removeInhibitorArc(
             @ToolParam(description = "Name of the place") String place_name,
             @ToolParam(description = "Name of the transition") String transition_name) {
+        PetriNetUtils.checkNetAndMarking(petriNet, marking);
         Place p = PetriNetUtils.findPlaceByName(petriNet, place_name);
         Transition t = PetriNetUtils.findTransitionByName(petriNet, transition_name);
 
@@ -416,6 +427,7 @@ public class SirioService {
 
     @Tool(name = "execute_steady_state_analysis", description = "Executes a steady state analysis on a generalized stochastic petri net. This requires all the transitions to be immediate (with firing time deterministic and equal to 0) or exponential (with firing time distributed as an exponential random variable with rate lambda)")
     public String executeSteadyStateAnalysis() {
+        PetriNetUtils.checkNetAndMarking(petriNet, marking);
         Map<Marking, Double> result = GSPNSteadyState.builder().build().compute(petriNet, marking);
         String stringResult = "";
         try {
@@ -429,6 +441,7 @@ public class SirioService {
     @Tool(name = "execute_transient_analysis", description = "Executes a transient analysis on a generalized stochastic petri net at specific time points. This requires all the transitions to be immediate (with firing time deterministic and equal to 0) or exponential (with firing time distributed as an exponential random variable with rate lambda) and either a list of time points or a time range (start, end, step). Returns the probability distribution over markings at each specified time point.")
     public String executeTransientAnalysis(
             @ToolParam(description = "A list of time points to compute probabilities for (e.g., [1.0, 5.0, 10.0]) or a time range (start, end, step) (e.g. given [0.0, 2.0, 0.2], the resulting time points will be [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0])") List<Double> timePoints) {
+        PetriNetUtils.checkNetAndMarking(petriNet, marking);
         if (petriNet == null || marking == null) {
             throw new IllegalStateException("Petri net and marking must be created before running analysis.");
         }
