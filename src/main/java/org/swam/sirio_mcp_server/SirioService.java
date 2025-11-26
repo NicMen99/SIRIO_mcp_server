@@ -159,8 +159,7 @@ public class SirioService {
 
         t.addFeature(StochasticTransitionFeature.newExponentialInstance(BigDecimal.valueOf(rate),
                 (clockRate != null) ? MarkingExpr.of(clockRate) : MarkingExpr.ONE,
-                (weight != null) ? MarkingExpr.of(weight) : MarkingExpr.ONE // If weight is provided, clockRate must be
-                                                                            // provided too, as per function signature
+                (weight != null) ? MarkingExpr.of(weight) : MarkingExpr.ONE // If weight is provided, clockRate must be provided too, as per function signature
         ));
 
         return "Exponential transition added successfully.";
@@ -290,6 +289,7 @@ public class SirioService {
                 // Ispeziona i campi dell'oggetto DENSITY (es. rate, eft, lft)
                 printAllFields(density, output, "    - ");
 
+                //TODO aggiungere stampa di DENSITY e altri parametri rilevanti
                 // Stampa anche i campi base della feature (weight, clockRate)
                 output.append("  > Base Parameters:\n");
                 output.append("    - Weight: ").append(stf.weight()).append("\n");
@@ -319,7 +319,7 @@ public class SirioService {
 
         for (Field field : fields) {
             try {
-                // TODO valutare se tenere questo hack o trovare un modo migliore
+                // TODO va trovato un modo per accedere al campo 'domain' in modo da vedere eft e lft
                 // field.setAccessible(true); // HACK "Scassina" i campi privati
 
                 // Saltiamo i campi statici o costanti inutili
@@ -411,7 +411,7 @@ public class SirioService {
     }
 
     // --------------------------
-    // Analyses
+    // Analysis
     // --------------------------
 
     @Tool(name = "execute_steady_state_analysis", description = "Executes a steady state analysis on a generalized stochastic petri net. This requires all the transitions to be immediate (with firing time deterministic and equal to 0) or exponential (with firing time distributed as an exponential random variable with rate lambda)")
@@ -433,8 +433,7 @@ public class SirioService {
             throw new IllegalStateException("Petri net and marking must be created before running analysis.");
         }
 
-        // Il GSPNTransient.builder accetta un array di double[] --> Converto la lista
-        // di Double in un array di double
+        // Il GSPNTransient.builder accetta un array di double[] --> Converto la lista di Double in un array di double
         double[] timePointsArray = timePoints.stream()
                 .mapToDouble(Double::doubleValue)
                 .toArray();
@@ -448,10 +447,11 @@ public class SirioService {
         Map<Marking, Integer> statePos = result.first();
         double[][] probs = result.second(); // [indice_tempo][indice_stato]
 
+        //TODO ritestare questa parte con una linkedList o simili per mantenere l'ordine
+
         Map<Double, Map<Marking, Double>> transientResults = new HashMap<>();
 
-        // Ciclo principale sugli istanti di tempo (corrispondenti alle righe della
-        // matrice)
+        // Ciclo principale sugli istanti di tempo (corrispondenti alle righe della matrice)
         for (int t_idx = 0; t_idx < timePointsArray.length; t_idx++) {
             double currentTime = timePointsArray[t_idx];
             Map<Marking, Double> probsAtThisTime = new HashMap<>();
