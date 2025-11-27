@@ -58,16 +58,20 @@ public class SirioService {
     // --------------------------
 
     @Tool(name = "add_places", description = "Add new places to the net")
-    public PetriNet addPlaces(List<String> node_names) {
+    public String addPlaces(List<String> node_names) {
+        long startTime = System.nanoTime();
         PetriNetUtils.checkNetAndMarking(petriNet, marking);
         for (String nodeName : node_names) {
             petriNet.addPlace(nodeName);
         }
-        return petriNet;
+        long endTime = System.nanoTime();
+        long totalTime = endTime - startTime;
+        //TODO modificare in modo da restituire come output -> cambiare il tipo di ritorno da PetriNet a String
+        return "Places added successfully in " + totalTime + " ns.";
     }
 
     @Tool(name = "remove_places", description = "Remove existent places from the net")
-    public PetriNet removePlaces(List<String> node_names) {
+    public void removePlaces(List<String> node_names) {
         PetriNetUtils.checkNetAndMarking(petriNet, marking);
         petriNet.getTransitions().stream()
                 .map(petriNet::getPreconditions)
@@ -85,8 +89,6 @@ public class SirioService {
                 .map(petriNet::getPlace)
                 .filter(java.util.Objects::nonNull)
                 .forEach(petriNet::removePlace);
-
-        return petriNet;
     }
 
     // --------------------------
@@ -94,16 +96,15 @@ public class SirioService {
     // --------------------------
 
     @Tool(name = "add_transitions", description = "Add new transitions to the net")
-    public PetriNet addTransitions(List<String> transition_names) {
+    public void addTransitions(List<String> transition_names) {
         PetriNetUtils.checkNetAndMarking(petriNet, marking);
         for (String transitionName : transition_names) {
             petriNet.addTransition(transitionName);
         }
-        return petriNet;
     }
 
     @Tool(name = "remove_transitions", description = "Remove existent transitions from the net")
-    public PetriNet removeTransitions(List<String> transition_names) {
+    public void removeTransitions(List<String> transition_names) {
         PetriNetUtils.checkNetAndMarking(petriNet, marking);
         transition_names.stream()
                 .map(petriNet::getTransition)
@@ -117,8 +118,6 @@ public class SirioService {
                                 .forEach(petriNet::removeInhibitorArc);
                         petriNet.removeTransition(transition);
                 });
-
-        return petriNet;
     }
 
     @Tool(name = "add_UNI", description = "Add a new uniformely distributed transition with specified earliest and latest firing times, optionally with a scaling clock rate")
@@ -157,7 +156,7 @@ public class SirioService {
     }
 
     @Tool(name = "add_EXP", description = "Add a new transition with a exponential timer and variable rate, optionally with clockRate and weight")
-    public String addEXP(
+    public void addEXP(
             @ToolParam(description = "name of transition") String transition_name,
             @ToolParam(description = "rate value") double rate,
             @ToolParam(description = "Optional scaling rate value. If not valid, the model will provide an explanation and clarify the problem and how to solve it", required = false) Double clockRate,
@@ -169,12 +168,10 @@ public class SirioService {
                 (clockRate != null) ? MarkingExpr.of(clockRate) : MarkingExpr.ONE,
                 (weight != null) ? MarkingExpr.of(weight) : MarkingExpr.ONE // If weight is provided, clockRate must be provided too, as per function signature
         ));
-
-        return "Exponential transition added successfully.";
     }
 
     @Tool(name = "set_transition_priority", description = "Set the priority of a specific transition")
-    public String setTransitionPriority(
+    public void setTransitionPriority(
             @ToolParam(description = "name of transition") String transition_name,
             @ToolParam(description = "priority value") int priority) {
         PetriNetUtils.checkNetAndMarking(petriNet, marking);
@@ -184,7 +181,6 @@ public class SirioService {
         }
         t.removeFeature(Priority.class); // Rimuove eventuali priorità esistenti
         t.addFeature(new Priority(priority));
-        return "Transition priority set successfully to " + priority + ".";
     }
 
     // --------------------------
@@ -203,25 +199,23 @@ public class SirioService {
     }
 
     @Tool(name = "add_tokens", description = "Add a specific number of tokens to a place")
-    public Marking addToken(
+    public void addToken(
             @ToolParam(description = "Name of the place") String name,
             @ToolParam(description = "Number of tokens to be added") int num) {
         PetriNetUtils.checkNetAndMarking(petriNet, marking);
         Place p = PetriNetUtils.findPlaceByName(petriNet, name);
 
         marking.addTokens(p, num);
-        return marking;
     }
 
     @Tool(name = "remove_tokens", description = "Remove a specific number of tokens from a place")
-    public Marking removeToken(
+    public void removeToken(
             @ToolParam(description = "Name of the place") String name,
             @ToolParam(description = "Number of tokens to be removed") int num) {
         PetriNetUtils.checkNetAndMarking(petriNet, marking);
         Place p = PetriNetUtils.findPlaceByName(petriNet, name);
 
         marking.removeTokens(p, num);
-        return marking;
     }
 
     @Tool(name = "add_enabling_function", description = "Add an enabling function to a transition")
@@ -347,7 +341,7 @@ public class SirioService {
     // Preconditions, Postconditions and Inhibitor Arcs
     // --------------------------
     @Tool(name = "add_precondition", description = "Add a precondition to a transition")
-    public PetriNet addPrecondition(
+    public void addPrecondition(
             @ToolParam(description = "Name of the place") String place_name,
             @ToolParam(description = "Name of the transition") String transition_name) {
         PetriNetUtils.checkNetAndMarking(petriNet, marking);
@@ -355,11 +349,10 @@ public class SirioService {
         Transition t = PetriNetUtils.findTransitionByName(petriNet, transition_name);
 
         petriNet.addPrecondition(p, t);
-        return petriNet;
     }
 
     @Tool(name = "remove_preconditions", description = "Remove a precondition to a transition")
-    public PetriNet removePrecondition(
+    public void removePrecondition(
             @ToolParam(description = "Name of the place") String place_name,
             @ToolParam(description = "Name of the transition") String transition_name) {
         PetriNetUtils.checkNetAndMarking(petriNet, marking);
@@ -368,11 +361,10 @@ public class SirioService {
 
         Precondition pc = petriNet.getPrecondition(p, t);
         petriNet.removePrecondition(pc);
-        return petriNet;
     }
 
     @Tool(name = "add_postcondition", description = "Add a postcondition to a transition")
-    public PetriNet addPostcondition(
+    public void addPostcondition(
             @ToolParam(description = "Name of the transition") String transition_name,
             @ToolParam(description = "Name of the place") String place_name) {
         PetriNetUtils.checkNetAndMarking(petriNet, marking);
@@ -380,11 +372,10 @@ public class SirioService {
         Place p = PetriNetUtils.findPlaceByName(petriNet, place_name);
 
         petriNet.addPostcondition(t, p);
-        return petriNet;
     }
 
     @Tool(name = "remove_postconditions", description = "Remove a postcondition to a transition")
-    public PetriNet removePostcondition(
+    public void removePostcondition(
             @ToolParam(description = "Name of the place") String place_name,
             @ToolParam(description = "Name of the transition") String transition_name) {
         PetriNetUtils.checkNetAndMarking(petriNet, marking);
@@ -393,11 +384,10 @@ public class SirioService {
 
         Postcondition pc = petriNet.getPostcondition(t, p);
         petriNet.removePostcondition(pc);
-        return petriNet;
     }
 
     @Tool(name = "add_inhibitor_arc", description = "Add an inhibitor arc between a place and a transition")
-    public PetriNet addInhibitorArc(
+    public void addInhibitorArc(
             @ToolParam(description = "Name of the source place") String source_name,
             @ToolParam(description = "Name of the target transition") String transition_name) {
         PetriNetUtils.checkNetAndMarking(petriNet, marking);
@@ -405,11 +395,10 @@ public class SirioService {
         Transition target = PetriNetUtils.findTransitionByName(petriNet, transition_name);
 
         petriNet.addInhibitorArc(source, target);
-        return petriNet;
     }
 
     @Tool(name = "remove_inhibitor_arc", description = "Remove an inhibitor arc between a place and a transition")
-    public PetriNet removeInhibitorArc(
+    public void removeInhibitorArc(
             @ToolParam(description = "Name of the place") String place_name,
             @ToolParam(description = "Name of the transition") String transition_name) {
         PetriNetUtils.checkNetAndMarking(petriNet, marking);
@@ -418,7 +407,6 @@ public class SirioService {
 
         InhibitorArc ia = petriNet.getInhibitorArc(p, t);
         petriNet.removeInhibitorArc(ia);
-        return petriNet;
     }
 
     // --------------------------
