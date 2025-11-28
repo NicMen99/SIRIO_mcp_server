@@ -58,16 +58,11 @@ public class SirioService {
     // --------------------------
 
     @Tool(name = "add_places", description = "Add new places to the net")
-    public String addPlaces(List<String> node_names) {
-        long startTime = System.nanoTime();
+    public void addPlaces(List<String> node_names) {
         PetriNetUtils.checkNetAndMarking(petriNet, marking);
         for (String nodeName : node_names) {
             petriNet.addPlace(nodeName);
         }
-        long endTime = System.nanoTime();
-        long totalTime = endTime - startTime;
-        //TODO modificare in modo da restituire come output -> cambiare il tipo di ritorno da PetriNet a String
-        return "Places added successfully in " + totalTime + " ns.";
     }
 
     @Tool(name = "remove_places", description = "Remove existent places from the net")
