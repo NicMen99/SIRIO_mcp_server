@@ -57,16 +57,18 @@ public class SirioService {
     // Places
     // --------------------------
 
-    @Tool(name = "add_places", description = "Add new places to the net")
-    public void addPlaces(List<String> node_names) {
+    @Tool(name = "add_places", description = "Add new places to the net")   // TODO: aggiungere nella descrizione che il nome dei place non può contenere spazi. Alternativamente, gestire i nomi con spazi, sostituendoli con underscore o simili
+    public void addPlaces(
+        @ToolParam(description = "List of place names") List<String> node_names) {
         PetriNetUtils.checkNetAndMarking(petriNet, marking);
         for (String nodeName : node_names) {
             petriNet.addPlace(nodeName);
         }
     }
 
-    @Tool(name = "remove_places", description = "Remove existent places from the net")
-    public void removePlaces(List<String> node_names) {
+    @Tool(name = "remove_places", description = "Remove existent places from the net")  // TODO: aggiungere nella descrizione che può rimuovere anche gli archi collegati
+    public void removePlaces(
+        @ToolParam(description = "List of place names") List<String> node_names) {
         PetriNetUtils.checkNetAndMarking(petriNet, marking);
         petriNet.getTransitions().stream()
                 .map(petriNet::getPreconditions)
@@ -91,7 +93,8 @@ public class SirioService {
     // --------------------------
 
     @Tool(name = "add_transitions", description = "Add new transitions to the net")
-    public void addTransitions(List<String> transition_names) {
+    public void addTransitions(
+        @ToolParam(description = "List of transition names") List<String> transition_names) {
         PetriNetUtils.checkNetAndMarking(petriNet, marking);
         for (String transitionName : transition_names) {
             petriNet.addTransition(transitionName);
@@ -99,7 +102,8 @@ public class SirioService {
     }
 
     @Tool(name = "remove_transitions", description = "Remove existent transitions from the net")
-    public void removeTransitions(List<String> transition_names) {
+    public void removeTransitions(
+        @ToolParam(description = "List of transition names") List<String> transition_names) {
         PetriNetUtils.checkNetAndMarking(petriNet, marking);
         transition_names.stream()
                 .map(petriNet::getTransition)
