@@ -110,7 +110,7 @@ To enable remote debugging, uncomment the debug args in `mcp.json`:
       "args": [
         "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005",
         "-jar",
-        "C:\\PATH-TO-YOUR-PROJECT\\target\\sirio_mcp_server-0.0.1-SNAPSHOT.jar"
+        "C:\\PATH-TO-SIRIO_mcp_server\\target\\sirio_mcp_server-0.0.1-SNAPSHOT.jar"
       ]
     }
   }
@@ -125,6 +125,50 @@ After creating the configuration:
 1. Reload VS Code window (`Ctrl+Shift+P` → "Developer: Reload Window")
 2. The SIRIO server will now be available to GitHub Copilot
 3. You can verify the connection in the MCP status indicator in VS Code
+
+---
+
+## Setting Up MCP with Claude Desktop
+
+To use this server with Claude Desktop, add the following configuration to your `claude_desktop_config.json` file:
+
+**macOS/Linux** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "sirio": {
+      "command": "java",
+      "args": [
+        "-Dspring.ai.mcp.server.stdio=true",
+        "-jar",
+        "/ABSOLUTE/PATH/TO/sirio_mcp_server-0.0.1-SNAPSHOT.jar"
+      ]
+    }
+  }
+}
+```
+
+**Windows** (`%APPDATA%\Claude\claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "sirio": {
+      "command": "java",
+      "args": [
+        "-Dspring.ai.mcp.server.stdio=true",
+        "-jar",
+        "C:\\PATH-TO-SIRIO_mcp_server\\target\\sirio_mcp_server-0.0.1-SNAPSHOT.jar"
+      ]
+    }
+  }
+}
+```
+
+**Note**: Replace the JAR path with your absolute path. After saving, restart Claude Desktop completely.
+
+For detailed setup instructions and troubleshooting, see the [official MCP documentation for Java servers](https://modelcontextprotocol.io/docs/develop/build-server#java).
+
+---
 
 ## How the Code Works
 
